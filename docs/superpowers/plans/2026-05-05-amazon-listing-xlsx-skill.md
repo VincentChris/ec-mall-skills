@@ -487,7 +487,7 @@ def source_rows(path: Path) -> list[dict[str, Any]]:
             continue
         item_code = str(source.get("Item Code", "")).strip()
         if not item_code:
-            item_code = f"ROW-{row_index}"
+            raise WorkbookError(f"Source row {row_index} is missing Item Code")
         rows.append({
             "rowIndex": row_index,
             "itemCode": item_code,
@@ -658,7 +658,8 @@ Expected: all tests pass.
 Run:
 
 ```bash
-python amazon-listing-xlsx/scripts/listing_workbook.py export-source source.xlsx --output build/source.rows.json
+SKILL_DIR=amazon-listing-xlsx
+python "$SKILL_DIR/scripts/listing_workbook.py" export-source source.xlsx --output build/source.rows.json
 ```
 
 Expected: command exits `0` and creates `build/source.rows.json`.
@@ -846,6 +847,7 @@ Expected source:
 - Sheet: `Product Info`
 - One product per row
 - Fixed product information headers like `Item Code`, `Product Name`, `Main Color`, `Main Material`, `Description`, and `Product Features 1`
+- Source `Item Code` values must be non-empty for every product row.
 
 Expected output:
 
@@ -854,15 +856,17 @@ Expected output:
 
 ## Workflow
 
-1. Export source rows to JSON:
+1. Resolve the installed skill directory first, for example `SKILL_DIR=/path/to/amazon-listing-xlsx`.
+
+2. Export source rows to JSON:
 
    ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py export-source <source.xlsx> --output build/source.rows.json
+   python "$SKILL_DIR/scripts/listing_workbook.py" export-source <source.xlsx> --output build/source.rows.json
    ```
 
-2. Read `references/listing_prompt_rules.md`.
+3. Read `$SKILL_DIR/references/listing_prompt_rules.md`.
 
-3. Generate listing JSON for every exported row.
+4. Generate listing JSON for every exported row.
 
    Requirements:
 
@@ -870,23 +874,24 @@ Expected output:
    - Preserve item order.
    - Return strict JSON array only.
    - Include all target fields.
-   - Use empty strings only when a field cannot be recovered.
+   - Final target fields must be non-empty.
+   - If a field lacks enough source information, stop and report the issue or write reasonable listing copy from available product context instead of using an empty string.
 
-4. Save generated JSON to `build/generated-listings.json`.
+5. Save generated JSON to `build/generated-listings.json`.
 
-5. Write the final workbook:
-
-   ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py write-output <source.xlsx> build/generated-listings.json --output <source.amazon-listings.xlsx>
-   ```
-
-6. Validate the final workbook:
+6. Write the final workbook:
 
    ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py validate-output <source.xlsx> <source.amazon-listings.xlsx>
+   python "$SKILL_DIR/scripts/listing_workbook.py" write-output <source.xlsx> build/generated-listings.json --output <source.amazon-listings.xlsx>
    ```
 
-7. Return the generated workbook path to the user.
+7. Validate the final workbook:
+
+   ```bash
+   python "$SKILL_DIR/scripts/listing_workbook.py" validate-output <source.xlsx> <source.amazon-listings.xlsx>
+   ```
+
+8. Return the generated workbook path to the user.
 
 ## Rules
 
@@ -894,13 +899,14 @@ Expected output:
 - Do not output CSV or JSON as the final deliverable unless the user explicitly asks.
 - Do not skip source rows.
 - Do not invent item codes.
+- Reject source rows with missing `Item Code`; do not create fallback item codes.
 - Keep generated description line breaks as `<br>`, not actual newline characters.
 - If validation fails, fix the generated JSON or workbook issue and rerun validation before responding.
 
 ## References
 
-- Listing copy rules: `references/listing_prompt_rules.md`
-- Workbook utility: `scripts/listing_workbook.py`
+- Listing copy rules: `$SKILL_DIR/references/listing_prompt_rules.md`
+- Workbook utility: `$SKILL_DIR/scripts/listing_workbook.py`
 ```
 ````
 
@@ -947,7 +953,8 @@ Run:
 
 ```bash
 mkdir -p build
-python amazon-listing-xlsx/scripts/listing_workbook.py export-source source.xlsx --output build/source.rows.json
+SKILL_DIR=amazon-listing-xlsx
+python "$SKILL_DIR/scripts/listing_workbook.py" export-source source.xlsx --output build/source.rows.json
 ```
 
 Expected: exits `0`.
@@ -997,7 +1004,8 @@ Expected:
 Run:
 
 ```bash
-python amazon-listing-xlsx/scripts/listing_workbook.py write-output source.xlsx build/generated-listings.json --output build/source.amazon-listings.xlsx
+SKILL_DIR=amazon-listing-xlsx
+python "$SKILL_DIR/scripts/listing_workbook.py" write-output source.xlsx build/generated-listings.json --output build/source.amazon-listings.xlsx
 ```
 
 Expected output:
@@ -1011,7 +1019,8 @@ Wrote Amazon listing workbook: build/source.amazon-listings.xlsx
 Run:
 
 ```bash
-python amazon-listing-xlsx/scripts/listing_workbook.py validate-output source.xlsx build/source.amazon-listings.xlsx
+SKILL_DIR=amazon-listing-xlsx
+python "$SKILL_DIR/scripts/listing_workbook.py" validate-output source.xlsx build/source.amazon-listings.xlsx
 ```
 
 Expected output:
@@ -1085,3 +1094,4 @@ Expected: all tests pass.
 - Spec coverage: The plan covers skill creation, prompt rules, workbook parsing, writing, validation, fixed target schema, error handling, and end-to-end sample validation.
 - Placeholder scan: No unresolved placeholder instructions remain.
 - Type consistency: CLI commands, JSON keys, workbook headers, and test expectations use the same names across tasks.
+- Implementation synchronization: `Item Code` is required for every non-empty source data row; the workbook script fails instead of creating fallback item codes. Installed skill usage resolves `SKILL_DIR` before invoking bundled scripts, while repo-root script paths remain only in the historical CLI contract and file path references.

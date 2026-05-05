@@ -15,6 +15,7 @@ Expected source structure:
 - Sheet name: `Product Info`
 - First row: fixed product information headers
 - Data rows: one product per row
+- Source `Item Code` values must be non-empty for every product row.
 - Key source fields include:
   - `Item Code`
   - `Product Name`
@@ -116,14 +117,17 @@ The skill should fail clearly before generating output when:
 - The input file is not a readable `.xlsx` workbook.
 - The workbook does not contain `Product Info`.
 - Required headers are missing.
+- A non-empty source data row has an empty `Item Code`; the skill must not fallback to or invent item codes.
 - No product data rows are found.
 
 For row-level weak data:
 
 - Preserve output row count.
 - Keep required columns present.
-- Use empty strings only when a generated field cannot be recovered.
-- Surface a concise warning that identifies affected item codes or source row numbers.
+- Final output fields must be non-empty.
+- If source information is insufficient to generate a required listing field, fail clearly or generate reasonable conservative listing copy from the available product context.
+- Do not write empty target fields.
+- Surface a concise error or warning that identifies affected item codes or source row numbers.
 
 ## Validation Requirements
 
