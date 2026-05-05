@@ -86,19 +86,18 @@ Do not use unrelated brand names, trademarked names, weapons, drug references, o
 
 Return strict JSON only. Do not use Markdown fences or explanatory text.
 
-```json
-[
-  {
-    "rowIndex": 2,
-    "itemCode": "SKU-1",
-    "productTitle": "Generated title",
-    "productDescription": "<b>Generated</b><br>Description",
-    "searchTerms": "keyword keyword",
-    "bulletPoint1": "1. HEADER - Content",
-    "bulletPoint2": "2. HEADER - Content",
-    "bulletPoint3": "3. HEADER - Content",
-    "bulletPoint4": "4. HEADER - Content",
-    "bulletPoint5": "5. HEADER - Content"
-  }
-]
-```
+Example shape, shown for structure only:
+    [
+      {
+        "rowIndex": 2,
+        "itemCode": "SKU-1",
+        "productTitle": "Generated title",
+        "productDescription": "<b>Generated</b><br>Description",
+        "searchTerms": "keyword keyword",
+        "bulletPoint1": "1. HEADER - Content",
+        "bulletPoint2": "2. HEADER - Content",
+        "bulletPoint3": "3. HEADER - Content",
+        "bulletPoint4": "4. HEADER - Content",
+        "bulletPoint5": "5. HEADER - Content"
+      }
+    ]
