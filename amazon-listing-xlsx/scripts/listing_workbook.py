@@ -86,7 +86,7 @@ def source_rows(path: Path) -> list[dict[str, Any]]:
 
         item_code = str(source.get("Item Code", "")).strip()
         if not item_code:
-            item_code = f"ROW-{row_index}"
+            raise WorkbookError(f"Source row {row_index} is missing Item Code")
 
         rows.append(
             {

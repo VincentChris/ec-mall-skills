@@ -16,6 +16,7 @@ Expected source:
 - Sheet: `Product Info`
 - One product per row
 - Fixed product information headers like `Item Code`, `Product Name`, `Main Color`, `Main Material`, `Description`, and `Product Features 1`
+- Source `Item Code` values must be non-empty for every product row.
 
 Expected output:
 
@@ -42,7 +43,8 @@ Expected output:
    - Preserve item order.
    - Return strict JSON array only.
    - Include all target fields.
-   - Use empty strings only when a field cannot be recovered.
+   - Final target fields must be non-empty.
+   - If a field lacks enough source information, stop and report the issue or write reasonable listing copy from available product context instead of using an empty string.
 
 5. Save generated JSON to `build/generated-listings.json`.
 
@@ -66,6 +68,7 @@ Expected output:
 - Do not output CSV or JSON as the final deliverable unless the user explicitly asks.
 - Do not skip source rows.
 - Do not invent item codes.
+- Reject source rows with missing `Item Code`; do not create fallback item codes.
 - Keep generated description line breaks as `<br>`, not actual newline characters.
 - If validation fails, fix the generated JSON or workbook issue and rerun validation before responding.
 

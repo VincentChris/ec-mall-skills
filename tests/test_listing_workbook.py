@@ -177,6 +177,47 @@ def test_export_source_fails_when_required_header_missing(tmp_path: Path) -> Non
     assert "Description" in result.stderr
 
 
+def test_export_source_rejects_data_row_missing_item_code(tmp_path: Path) -> None:
+    source = tmp_path / "missing-item-code.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Product Info"
+    ws.append(SOURCE_HEADERS)
+    ws.append([
+        "",
+        "Expandable Hardside Luggage",
+        "Black",
+        "ABS",
+        20,
+        12,
+        28,
+        22,
+        30,
+        18,
+        12,
+        24,
+        "Durable suitcase with TSA lock and spinner wheels.",
+        "Expandable design",
+        "TSA lock",
+        "Spinner wheels",
+        "Nested storage",
+        "Fully lined interior",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "https://example.com/main.jpg",
+        "",
+    ])
+    wb.save(source)
+
+    result = run_cli("export-source", str(source))
+
+    assert result.returncode == 2
+    assert "missing Item Code" in result.stderr
+
+
 def test_write_output_creates_target_schema(tmp_path: Path) -> None:
     source = tmp_path / "source.xlsx"
     generated = tmp_path / "generated.json"
