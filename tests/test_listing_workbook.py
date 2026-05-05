@@ -3,7 +3,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from openpyxl import Workbook, load_workbook
 
 
@@ -125,6 +124,15 @@ def run_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess[str]:
     )
 
 
+def create_output_workbook(path: Path, headers: list[str], row: list[str]) -> None:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "listings"
+    ws.append(headers)
+    ws.append(row)
+    wb.save(path)
+
+
 def test_export_source_writes_row_json(tmp_path: Path) -> None:
     source = tmp_path / "source.xlsx"
     output = tmp_path / "rows.json"
@@ -199,6 +207,13 @@ def test_write_output_creates_target_schema(tmp_path: Path) -> None:
     assert [cell.value for cell in ws[1]] == TARGET_HEADERS
     assert ws.max_row == 3
     assert ws["A2"].value == "SKU-1"
+    assert ws["C2"].value == "<b>Travel Ready</b><br>Durable suitcase for organized trips."
+    assert ws["D2"].value == "carryon baggage spinner suitcase travel case"
+    assert ws["E2"].value == "1. EXPANDABLE STORAGE - Adds flexible packing room."
+    assert ws["F2"].value == "2. TSA SECURITY - Helps protect packed belongings."
+    assert ws["G2"].value == "3. SMOOTH MOBILITY - Spinner wheels move easily."
+    assert ws["H2"].value == "4. ORGANIZED INTERIOR - Lining helps separate items."
+    assert ws["I2"].value == "5. EASY STORAGE - Nested shape saves closet space."
     assert ws["B3"].value.startswith("Vintage Luggage Set")
 
 
@@ -252,3 +267,65 @@ def test_validate_output_accepts_matching_workbook(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Output workbook is valid" in result.stdout
+
+
+def test_validate_output_rejects_wrong_header_order(tmp_path: Path) -> None:
+    source = tmp_path / "source.xlsx"
+    output = tmp_path / "bad-output.xlsx"
+    create_source_workbook(source)
+    create_output_workbook(
+        output,
+        [
+            "itemCode",
+            "productTitle",
+            "searchTerms",
+            "productDescription",
+            "bulletPoint1",
+            "bulletPoint2",
+            "bulletPoint3",
+            "bulletPoint4",
+            "bulletPoint5",
+        ],
+        [
+            "SKU-1",
+            "Title One",
+            "alpha beta",
+            "<b>Description One</b>",
+            "1. ONE - Content",
+            "2. TWO - Content",
+            "3. THREE - Content",
+            "4. FOUR - Content",
+            "5. FIVE - Content",
+        ],
+    )
+
+    result = run_cli("validate-output", str(source), str(output))
+
+    assert result.returncode == 2
+    assert "Output headers do not match target schema" in result.stderr
+
+
+def test_validate_output_rejects_empty_required_field(tmp_path: Path) -> None:
+    source = tmp_path / "source.xlsx"
+    output = tmp_path / "empty-field-output.xlsx"
+    create_source_workbook(source)
+    create_output_workbook(
+        output,
+        TARGET_HEADERS,
+        [
+            "SKU-1",
+            "Title One",
+            "",
+            "alpha beta",
+            "1. ONE - Content",
+            "2. TWO - Content",
+            "3. THREE - Content",
+            "4. FOUR - Content",
+            "5. FIVE - Content",
+        ],
+    )
+
+    result = run_cli("validate-output", str(source), str(output))
+
+    assert result.returncode == 2
+    assert "empty required fields" in result.stderr
