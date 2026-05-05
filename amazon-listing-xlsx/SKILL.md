@@ -24,15 +24,17 @@ Expected output:
 
 ## Workflow
 
-1. Export source rows to JSON:
+1. Resolve the installed skill directory first, for example `SKILL_DIR=/path/to/amazon-listing-xlsx`.
+
+2. Export source rows to JSON:
 
    ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py export-source <source.xlsx> --output build/source.rows.json
+   python "$SKILL_DIR/scripts/listing_workbook.py" export-source <source.xlsx> --output build/source.rows.json
    ```
 
-2. Read `references/listing_prompt_rules.md`.
+3. Read `$SKILL_DIR/references/listing_prompt_rules.md`.
 
-3. Generate listing JSON for every exported row.
+4. Generate listing JSON for every exported row.
 
    Requirements:
 
@@ -42,21 +44,21 @@ Expected output:
    - Include all target fields.
    - Use empty strings only when a field cannot be recovered.
 
-4. Save generated JSON to `build/generated-listings.json`.
+5. Save generated JSON to `build/generated-listings.json`.
 
-5. Write the final workbook:
-
-   ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py write-output <source.xlsx> build/generated-listings.json --output <source.amazon-listings.xlsx>
-   ```
-
-6. Validate the final workbook:
+6. Write the final workbook:
 
    ```bash
-   python amazon-listing-xlsx/scripts/listing_workbook.py validate-output <source.xlsx> <source.amazon-listings.xlsx>
+   python "$SKILL_DIR/scripts/listing_workbook.py" write-output <source.xlsx> build/generated-listings.json --output <source.amazon-listings.xlsx>
    ```
 
-7. Return the generated workbook path to the user.
+7. Validate the final workbook:
+
+   ```bash
+   python "$SKILL_DIR/scripts/listing_workbook.py" validate-output <source.xlsx> <source.amazon-listings.xlsx>
+   ```
+
+8. Return the generated workbook path to the user.
 
 ## Rules
 
@@ -69,5 +71,5 @@ Expected output:
 
 ## References
 
-- Listing copy rules: `references/listing_prompt_rules.md`
-- Workbook utility: `scripts/listing_workbook.py`
+- Listing copy rules: `$SKILL_DIR/references/listing_prompt_rules.md`
+- Workbook utility: `$SKILL_DIR/scripts/listing_workbook.py`
