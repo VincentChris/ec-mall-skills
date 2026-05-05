@@ -168,7 +168,17 @@ def write_output_workbook(source_path: Path, generated_json_path: Path, output_p
 
 def validate_output_workbook(source_path: Path, output_path: Path) -> None:
     source = source_rows(source_path)
-    sheet = load_workbook_sheet(output_path, TARGET_SHEET)
+    if not output_path.exists():
+        raise WorkbookError(f"Output file does not exist: {output_path}")
+    try:
+        workbook = load_workbook(output_path, data_only=True)
+    except Exception as exc:
+        raise WorkbookError(f"Output workbook is not readable: {output_path}") from exc
+    if workbook.sheetnames != [TARGET_SHEET]:
+        raise WorkbookError(
+            f"Only sheet allowed is {TARGET_SHEET}; found sheets: {workbook.sheetnames}"
+        )
+    sheet = workbook[TARGET_SHEET]
     headers = read_headers(sheet)
     if headers != TARGET_HEADERS:
         raise WorkbookError(f"Output headers do not match target schema: {headers}")

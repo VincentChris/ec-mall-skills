@@ -133,6 +133,17 @@ def create_output_workbook(path: Path, headers: list[str], row: list[str]) -> No
     wb.save(path)
 
 
+def create_output_workbook_with_extra_sheet(path: Path, headers: list[str], row: list[str]) -> None:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "listings"
+    ws.append(headers)
+    ws.append(row)
+    extra = wb.create_sheet("extra")
+    extra["A1"] = "noise"
+    wb.save(path)
+
+
 def test_export_source_writes_row_json(tmp_path: Path) -> None:
     source = tmp_path / "source.xlsx"
     output = tmp_path / "rows.json"
@@ -303,6 +314,32 @@ def test_validate_output_rejects_wrong_header_order(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "Output headers do not match target schema" in result.stderr
+
+
+def test_validate_output_rejects_extra_sheet(tmp_path: Path) -> None:
+    source = tmp_path / "source.xlsx"
+    output = tmp_path / "extra-sheet-output.xlsx"
+    create_source_workbook(source)
+    create_output_workbook_with_extra_sheet(
+        output,
+        TARGET_HEADERS,
+        [
+            "SKU-1",
+            "Title One",
+            "<b>Description One</b>",
+            "alpha beta",
+            "1. ONE - Content",
+            "2. TWO - Content",
+            "3. THREE - Content",
+            "4. FOUR - Content",
+            "5. FIVE - Content",
+        ],
+    )
+
+    result = run_cli("validate-output", str(source), str(output))
+
+    assert result.returncode == 2
+    assert "only sheet allowed is listings" in result.stderr.lower()
 
 
 def test_validate_output_rejects_empty_required_field(tmp_path: Path) -> None:
