@@ -240,6 +240,45 @@ def test_write_output_rejects_row_count_mismatch(tmp_path: Path) -> None:
     assert "Generated row count 0 does not match source row count 2" in result.stderr
 
 
+def test_write_output_rejects_duplicate_generated_row_index(tmp_path: Path) -> None:
+    source = tmp_path / "source.xlsx"
+    generated = tmp_path / "generated.json"
+    output = tmp_path / "amazon-listings.xlsx"
+    create_source_workbook(source)
+    generated.write_text(json.dumps([
+        {
+            "rowIndex": 2,
+            "itemCode": "SKU-1",
+            "productTitle": "Title One",
+            "productDescription": "<b>Description One</b>",
+            "searchTerms": "alpha beta",
+            "bulletPoint1": "1. ONE - Content",
+            "bulletPoint2": "2. TWO - Content",
+            "bulletPoint3": "3. THREE - Content",
+            "bulletPoint4": "4. FOUR - Content",
+            "bulletPoint5": "5. FIVE - Content",
+        },
+        {
+            "rowIndex": 2,
+            "itemCode": "SKU-2",
+            "productTitle": "Title Two",
+            "productDescription": "<b>Description Two</b>",
+            "searchTerms": "gamma delta",
+            "bulletPoint1": "1. ONE - Content",
+            "bulletPoint2": "2. TWO - Content",
+            "bulletPoint3": "3. THREE - Content",
+            "bulletPoint4": "4. FOUR - Content",
+            "bulletPoint5": "5. FIVE - Content",
+        },
+    ]))
+
+    result = run_cli("write-output", str(source), str(generated), "--output", str(output))
+
+    assert result.returncode == 2
+    assert "Duplicate generated rowIndex" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_validate_output_accepts_matching_workbook(tmp_path: Path) -> None:
     source = tmp_path / "source.xlsx"
     generated = tmp_path / "generated.json"
@@ -366,3 +405,43 @@ def test_validate_output_rejects_empty_required_field(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "empty required fields" in result.stderr
+
+
+def test_write_output_does_not_leave_file_on_validation_failure(tmp_path: Path) -> None:
+    source = tmp_path / "source.xlsx"
+    generated = tmp_path / "generated.json"
+    output = tmp_path / "amazon-listings.xlsx"
+    create_source_workbook(source)
+    generated.write_text(json.dumps([
+        {
+            "rowIndex": 2,
+            "itemCode": "SKU-1",
+            "productTitle": "Title One",
+            "productDescription": "",
+            "searchTerms": "alpha beta",
+            "bulletPoint1": "1. ONE - Content",
+            "bulletPoint2": "2. TWO - Content",
+            "bulletPoint3": "3. THREE - Content",
+            "bulletPoint4": "4. FOUR - Content",
+            "bulletPoint5": "5. FIVE - Content",
+        },
+        {
+            "rowIndex": 3,
+            "itemCode": "SKU-2",
+            "productTitle": "Title Two",
+            "productDescription": "<b>Description Two</b>",
+            "searchTerms": "gamma delta",
+            "bulletPoint1": "1. ONE - Content",
+            "bulletPoint2": "2. TWO - Content",
+            "bulletPoint3": "3. THREE - Content",
+            "bulletPoint4": "4. FOUR - Content",
+            "bulletPoint5": "5. FIVE - Content",
+        },
+    ]))
+
+    assert not output.exists()
+    result = run_cli("write-output", str(source), str(generated), "--output", str(output))
+
+    assert result.returncode == 2
+    assert "empty required fields" in result.stderr
+    assert not output.exists()

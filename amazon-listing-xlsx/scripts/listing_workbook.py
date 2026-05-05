@@ -131,8 +131,14 @@ def validate_generated_rows(source: list[dict[str, Any]], generated: list[dict[s
         raise WorkbookError(f"Generated row count {len(generated)} does not match source row count {len(source)}")
 
     source_by_row = {row["rowIndex"]: row for row in source}
+    seen_row_indexes: set[Any] = set()
     for row in generated:
         row_index = row.get("rowIndex")
+        if row_index is None:
+            raise WorkbookError("Generated row is missing rowIndex")
+        if row_index in seen_row_indexes:
+            raise WorkbookError(f"Duplicate generated rowIndex: {row_index}")
+        seen_row_indexes.add(row_index)
         if row_index not in source_by_row:
             raise WorkbookError(f"Generated row has unknown rowIndex: {row_index}")
 
@@ -142,6 +148,10 @@ def validate_generated_rows(source: list[dict[str, Any]], generated: list[dict[s
             raise WorkbookError(
                 f"Generated itemCode {actual_item_code} does not match source itemCode {expected_item_code}"
             )
+
+    missing_row_indexes = [row["rowIndex"] for row in source if row["rowIndex"] not in seen_row_indexes]
+    if missing_row_indexes:
+        raise WorkbookError(f"Missing generated rowIndex: {missing_row_indexes[0]}")
 
 
 def write_output_workbook(source_path: Path, generated_json_path: Path, output_path: Path) -> None:
@@ -162,8 +172,15 @@ def write_output_workbook(source_path: Path, generated_json_path: Path, output_p
         sheet.append([normalized[header] for header in TARGET_HEADERS])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    workbook.save(output_path)
-    validate_output_workbook(source_path, output_path)
+    temp_output_path = output_path.with_name(f".{output_path.stem}.tmp{output_path.suffix}")
+    try:
+        workbook.save(temp_output_path)
+        validate_output_workbook(source_path, temp_output_path)
+        temp_output_path.replace(output_path)
+    except Exception:
+        if temp_output_path.exists():
+            temp_output_path.unlink()
+        raise
 
 
 def validate_output_workbook(source_path: Path, output_path: Path) -> None:
